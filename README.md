@@ -30,3 +30,21 @@ npm run dev:renderer
 npm run dev:main
 npm run dev:electron
 ```
+
+## ビルド
+
+```bash
+npm run dist:all
+```
+
+単体ビルド:
+
+```bash
+npm run dist:win
+npm run dist:mac
+npm run dist:linux
+```
+
+## 自動アップデート
+
+GitHub Releases に新しいリリースがある場合、起動時に自動で確認して更新します。

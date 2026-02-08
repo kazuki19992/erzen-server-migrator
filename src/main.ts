@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import { autoUpdater } from "electron-updater";
 import path from "path";
 import fs from "fs";
 import os from "os";
@@ -29,6 +30,12 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   createWindow();
+
+  autoUpdater.logger = null;
+  autoUpdater.autoDownload = true;
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {
+    // Non-fatal
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

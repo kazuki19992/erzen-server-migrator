@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Minecraft modpack migration helper (options.txt + journeymap)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kazuki19992/erzen-server-migrator.git"
+  },
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && vite build",
@@ -10,7 +14,12 @@
     "dev:renderer": "vite",
     "dev:electron": "VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "dev:main": "tsc -p tsconfig.json -w",
-    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.json -w\" \"VITE_DEV_SERVER_URL=http://localhost:5173 electron .\""
+    "dev": "concurrently -k \"vite\" \"tsc -p tsconfig.json -w\" \"VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "dist": "npm run build && electron-builder",
+    "dist:all": "npm run build && electron-builder -mwl",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
@@ -20,12 +29,46 @@
     "autoprefixer": "^10.4.18",
     "concurrently": "^8.2.2",
     "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.0"
   },
   "dependencies": {
+    "electron-updater": "^6.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
+  },
+  "build": {
+    "appId": "com.erzen.server.migrator",
+    "productName": "Erzen Server Migrator",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ]
+    },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   }
 }
