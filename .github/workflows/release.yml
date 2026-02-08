@@ -16,7 +16,9 @@ jobs:
     steps:
       - name: Create tag name
         id: tag
-        run: echo "tag_name=build-$(date '+%Y-%m-%d-%H:%M:%S')" >> $GITHUB_OUTPUT
+        env:
+          TZ: Asia/Tokyo
+        run: echo "tag_name=build-$(date '+%Y-%m-%d-%H-%M-%S')" >> $GITHUB_OUTPUT
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
