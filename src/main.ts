@@ -1,12 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import path from "path";
+import fs from "fs";
+import os from "os";
 
 const APP_TITLE = "Modpack Migrator";
 const SETTINGS_FILE = "settings.json";
 
-function createWindow() {
+function createWindow(): void {
   const win = new BrowserWindow({
     width: 720,
     height: 520,
@@ -33,20 +33,20 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-function getSettingsPath() {
+function getSettingsPath(): string {
   return path.join(app.getPath("userData"), SETTINGS_FILE);
 }
 
-async function loadSettings() {
+async function loadSettings(): Promise<{ lastTargetDir?: string }> {
   try {
     const raw = await fs.promises.readFile(getSettingsPath(), "utf8");
-    return JSON.parse(raw);
+    return JSON.parse(raw) as { lastTargetDir?: string };
   } catch {
     return {};
   }
 }
 
-async function saveSettings(nextSettings) {
+async function saveSettings(nextSettings: { lastTargetDir?: string }): Promise<void> {
   const settingsPath = getSettingsPath();
   const payload = JSON.stringify(nextSettings, null, 2);
   await fs.promises.mkdir(path.dirname(settingsPath), { recursive: true });
@@ -66,7 +66,7 @@ ipcMain.handle("select-directory", async () => {
   return result.filePaths[0];
 });
 
-function expandPath(inputPath) {
+function expandPath(inputPath: string): string {
   if (!inputPath) return inputPath;
   if (inputPath.startsWith("~")) {
     return path.join(os.homedir(), inputPath.slice(1));
@@ -81,10 +81,9 @@ ipcMain.handle("get-saved-paths", async () => {
   };
 });
 
-ipcMain.handle("migrate", async (_event, payload) => {
-  const { sourceDir: rawSource, targetDir: rawTarget } = payload || {};
-  const sourceDir = path.resolve(expandPath(rawSource || ""));
-  const targetDir = path.resolve(expandPath(rawTarget || ""));
+ipcMain.handle("migrate", async (_event, payload: { sourceDir?: string; targetDir?: string }) => {
+  const sourceDir = path.resolve(expandPath(payload?.sourceDir || ""));
+  const targetDir = path.resolve(expandPath(payload?.targetDir || ""));
 
   if (!sourceDir || !targetDir) {
     return { ok: false, message: "移行元と移行先の両方を入力してください。" };
@@ -98,7 +97,7 @@ ipcMain.handle("migrate", async (_event, payload) => {
   try {
     await fs.promises.access(sourceDir, fs.constants.R_OK);
   } catch (error) {
-    return { ok: false, message: `移行元フォルダーにアクセスできません: ${error.code || error.message}` };
+    return { ok: false, message: `移行元フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}` };
   }
 
   try {
@@ -108,21 +107,21 @@ ipcMain.handle("migrate", async (_event, payload) => {
     }
     await fs.promises.access(targetDir, fs.constants.R_OK | fs.constants.W_OK);
   } catch (error) {
-    if (error.code === "ENOENT") {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       try {
         await fs.promises.mkdir(targetDir, { recursive: true });
       } catch (mkdirError) {
         return {
           ok: false,
-          message: `移行先フォルダーの作成に失敗しました: ${mkdirError.code || mkdirError.message}`
+          message: `移行先フォルダーの作成に失敗しました: ${String((mkdirError as NodeJS.ErrnoException).code || mkdirError)}`
         };
       }
     } else {
-      return { ok: false, message: `移行先フォルダーにアクセスできません: ${error.code || error.message}` };
+      return { ok: false, message: `移行先フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}` };
     }
   }
 
-  const missing = [];
+  const missing: string[] = [];
   try {
     await fs.promises.access(srcOptions, fs.constants.R_OK);
   } catch {
@@ -144,7 +143,7 @@ ipcMain.handle("migrate", async (_event, payload) => {
     await fs.promises.copyFile(srcOptions, dstOptions);
     await fs.promises.cp(srcJourney, dstJourney, { recursive: true, force: true });
   } catch (error) {
-    return { ok: false, message: `コピーに失敗しました: ${error.message}` };
+    return { ok: false, message: `コピーに失敗しました: ${(error as Error).message}` };
   }
 
   try {

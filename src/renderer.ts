@@ -1,16 +1,16 @@
-const sourceInput = document.getElementById("sourcePath");
-const targetInput = document.getElementById("targetPath");
-const statusEl = document.getElementById("status");
-const migrateBtn = document.getElementById("migrateBtn");
-const sourceBrowse = document.getElementById("sourceBrowse");
-const targetBrowse = document.getElementById("targetBrowse");
+const sourceInput = document.getElementById("sourcePath") as HTMLInputElement;
+const targetInput = document.getElementById("targetPath") as HTMLInputElement;
+const statusEl = document.getElementById("status") as HTMLDivElement;
+const migrateBtn = document.getElementById("migrateBtn") as HTMLButtonElement;
+const sourceBrowse = document.getElementById("sourceBrowse") as HTMLButtonElement;
+const targetBrowse = document.getElementById("targetBrowse") as HTMLButtonElement;
 
-function setStatus(message, kind = "info") {
+function setStatus(message: string, kind: "info" | "success" | "error" = "info"): void {
   statusEl.textContent = message;
   statusEl.dataset.kind = kind;
 }
 
-async function loadSavedPaths() {
+async function loadSavedPaths(): Promise<void> {
   try {
     const saved = await window.modpackMigrator.getSavedPaths();
     if (saved.lastTargetDir) {
@@ -23,7 +23,7 @@ async function loadSavedPaths() {
   }
 }
 
-async function handleBrowse(targetInputEl) {
+async function handleBrowse(targetInputEl: HTMLInputElement): Promise<void> {
   const selected = await window.modpackMigrator.selectDirectory();
   if (selected) targetInputEl.value = selected;
 }
@@ -47,7 +47,8 @@ migrateBtn.addEventListener("click", async () => {
       setStatus(result.message, "error");
     }
   } catch (error) {
-    setStatus(`予期しないエラー: ${error.message}`, "error");
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`予期しないエラー: ${message}`, "error");
   } finally {
     migrateBtn.disabled = false;
   }

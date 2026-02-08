@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "description": "Minecraft modpack migration helper (options.txt + journeymap)",
-  "main": "src/main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "electron ."
+    "build": "tsc && node scripts/copy-static.mjs",
+    "start": "npm run build && electron ."
   },
   "devDependencies": {
-    "electron": "^30.0.0"
+    "@types/node": "^20.0.0",
+    "electron": "^30.0.0",
+    "typescript": "^5.4.0"
   }
 }
