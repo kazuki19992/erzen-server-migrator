@@ -1,0 +1,13 @@
+{
+  "name": "modpack-migrator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minecraft modpack migration helper (options.txt + journeymap)",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}
