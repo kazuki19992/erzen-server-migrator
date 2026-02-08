@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "description": "Minecraft modpack migration helper (options.txt + journeymap)",
+  "author": {
+    "name": "kazuki19992",
+    "email": "kushida98@gmail.com"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kazuki19992/erzen-server-migrator.git"
