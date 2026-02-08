@@ -10,6 +10,7 @@ declare global {
         disableTutorial?: boolean;
       }) => Promise<{ ok: boolean; message: string }>;
       getSavedPaths: () => Promise<{ lastTargetDir: string }>;
+      openDirectory: (path: string) => Promise<{ ok: boolean; message: string }>;
     };
   }
 }

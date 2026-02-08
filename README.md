@@ -20,8 +20,13 @@ npm run dev:renderer
 ### 開発（Electronでホットリロード）
 
 ```bash
-npm run dev:renderer
-npm run dev:electron
+npm run dev
 ```
 
-上記を別ターミナルで実行してください。
+もしくは別ターミナルで以下でもOKです。
+
+```bash
+npm run dev:renderer
+npm run dev:main
+npm run dev:electron
+```

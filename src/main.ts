@@ -1,15 +1,15 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import os from "os";
 
-const APP_TITLE = "Modpack Migrator";
+const APP_TITLE = "Erzen Server Migrator";
 const SETTINGS_FILE = "settings.json";
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 720,
-    height: 520,
+    width: 1280,
+    height: 720,
     title: APP_TITLE,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -72,6 +72,29 @@ ipcMain.handle("select-directory", async () => {
   return result.filePaths[0];
 });
 
+ipcMain.handle("open-directory", async (_event, payload: { path?: string }) => {
+  const targetPath = path.resolve(expandPath(payload?.path || ""));
+  if (!targetPath) {
+    return { ok: false, message: "フォルダーのパスが空です。" };
+  }
+
+  try {
+    const stat = await fs.promises.stat(targetPath);
+    if (!stat.isDirectory()) {
+      return { ok: false, message: "指定されたパスはフォルダーではありません。" };
+    }
+  } catch (error) {
+    return { ok: false, message: `フォルダーを確認できません: ${String((error as NodeJS.ErrnoException).code || error)}` };
+  }
+
+  const result = await shell.openPath(targetPath);
+  if (result) {
+    return { ok: false, message: `フォルダーを開けませんでした: ${result}` };
+  }
+
+  return { ok: true, message: "フォルダーを開きました。" };
+});
+
 function expandPath(inputPath: string): string {
   if (!inputPath) return inputPath;
   if (inputPath.startsWith("~")) {
@@ -100,8 +123,10 @@ ipcMain.handle(
 
     const srcOptions = path.join(sourceDir, "options.txt");
     const srcJourney = path.join(sourceDir, "journeymap");
+    const srcServers = path.join(sourceDir, "servers.dat");
     const dstOptions = path.join(targetDir, "options.txt");
     const dstJourney = path.join(targetDir, "journeymap");
+    const dstServers = path.join(targetDir, "servers.dat");
 
     try {
       await fs.promises.access(sourceDir, fs.constants.R_OK);
@@ -139,31 +164,40 @@ ipcMain.handle(
     }
 
     const missing: string[] = [];
+    const warnings: string[] = [];
+    const filesToCopy: Array<() => Promise<void>> = [];
+
     try {
       await fs.promises.access(srcOptions, fs.constants.R_OK);
+      filesToCopy.push(() => fs.promises.copyFile(srcOptions, dstOptions));
     } catch {
       missing.push("options.txt");
     }
 
     try {
       const stat = await fs.promises.stat(srcJourney);
-      if (!stat.isDirectory()) missing.push("journeymap/");
+      if (!stat.isDirectory()) throw new Error("not a directory");
+      filesToCopy.push(() => fs.promises.cp(srcJourney, dstJourney, { recursive: true, force: true }));
     } catch {
       missing.push("journeymap/");
     }
 
-    if (missing.length > 0) {
-      return { ok: false, message: `移行元に存在しません: ${missing.join(", ")}` };
+    try {
+      await fs.promises.access(srcServers, fs.constants.R_OK);
+      filesToCopy.push(() => fs.promises.copyFile(srcServers, dstServers));
+    } catch {
+      missing.push("servers.dat");
     }
 
     try {
-      await fs.promises.copyFile(srcOptions, dstOptions);
-      await fs.promises.cp(srcJourney, dstJourney, { recursive: true, force: true });
+      for (const copy of filesToCopy) {
+        await copy();
+      }
     } catch (error) {
       return { ok: false, message: `コピーに失敗しました: ${(error as Error).message}` };
     }
 
-    if (disableTutorial) {
+    if (disableTutorial && !missing.includes("options.txt")) {
       try {
         const content = await fs.promises.readFile(dstOptions, "utf8");
         const lines = content.split(/\r?\n/);
@@ -192,6 +226,11 @@ ipcMain.handle(
       // Non-fatal: migration succeeded
     }
 
-    return { ok: true, message: "移行が完了しました。" };
+    if (missing.length > 0) {
+      warnings.push(`存在しないためスキップ: ${missing.join(", ")}`);
+    }
+
+    const message = warnings.length > 0 ? `移行が完了しました。${warnings.join(" / ")}` : "移行が完了しました。";
+    return { ok: true, message };
   }
 );
