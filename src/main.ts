@@ -8,10 +8,12 @@ const APP_TITLE = "Erzen Server Migrator";
 const SETTINGS_FILE = "settings.json";
 
 function createWindow(): void {
+  const windowIcon = path.join(__dirname, "..", "assets", "icon.png");
   const win = new BrowserWindow({
     width: 1280,
     height: 720,
     title: APP_TITLE,
+    icon: windowIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,

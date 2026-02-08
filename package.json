@@ -51,20 +51,24 @@
     },
     "files": [
       "dist/**",
+      "assets/**",
       "package.json"
     ],
     "mac": {
+      "icon": "assets/icon.icns",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
+      "icon": "assets/icon.ico",
       "target": [
         "nsis"
       ]
     },
     "linux": {
+      "icon": "assets/icon.png",
       "target": [
         "deb"
       ]
