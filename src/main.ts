@@ -18,7 +18,13 @@ function createWindow(): void {
     }
   });
 
-  win.loadFile(path.join(__dirname, "index.html"));
+  const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devServerUrl) {
+    win.loadURL(devServerUrl);
+    win.webContents.openDevTools({ mode: "detach" });
+  } else {
+    win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  }
 }
 
 app.whenReady().then(() => {
@@ -81,78 +87,111 @@ ipcMain.handle("get-saved-paths", async () => {
   };
 });
 
-ipcMain.handle("migrate", async (_event, payload: { sourceDir?: string; targetDir?: string }) => {
-  const sourceDir = path.resolve(expandPath(payload?.sourceDir || ""));
-  const targetDir = path.resolve(expandPath(payload?.targetDir || ""));
+ipcMain.handle(
+  "migrate",
+  async (_event, payload: { sourceDir?: string; targetDir?: string; disableTutorial?: boolean }) => {
+    const sourceDir = path.resolve(expandPath(payload?.sourceDir || ""));
+    const targetDir = path.resolve(expandPath(payload?.targetDir || ""));
+    const disableTutorial = payload?.disableTutorial ?? false;
 
-  if (!sourceDir || !targetDir) {
-    return { ok: false, message: "移行元と移行先の両方を入力してください。" };
-  }
-
-  const srcOptions = path.join(sourceDir, "options.txt");
-  const srcJourney = path.join(sourceDir, "journeymap");
-  const dstOptions = path.join(targetDir, "options.txt");
-  const dstJourney = path.join(targetDir, "journeymap");
-
-  try {
-    await fs.promises.access(sourceDir, fs.constants.R_OK);
-  } catch (error) {
-    return { ok: false, message: `移行元フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}` };
-  }
-
-  try {
-    const stat = await fs.promises.stat(targetDir);
-    if (!stat.isDirectory()) {
-      return { ok: false, message: "移行先のパスがフォルダーではありません。" };
+    if (!sourceDir || !targetDir) {
+      return { ok: false, message: "移行元と移行先の両方を入力してください。" };
     }
-    await fs.promises.access(targetDir, fs.constants.R_OK | fs.constants.W_OK);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      try {
-        await fs.promises.mkdir(targetDir, { recursive: true });
-      } catch (mkdirError) {
+
+    const srcOptions = path.join(sourceDir, "options.txt");
+    const srcJourney = path.join(sourceDir, "journeymap");
+    const dstOptions = path.join(targetDir, "options.txt");
+    const dstJourney = path.join(targetDir, "journeymap");
+
+    try {
+      await fs.promises.access(sourceDir, fs.constants.R_OK);
+    } catch (error) {
+      return {
+        ok: false,
+        message: `移行元フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}`
+      };
+    }
+
+    try {
+      const stat = await fs.promises.stat(targetDir);
+      if (!stat.isDirectory()) {
+        return { ok: false, message: "移行先のパスがフォルダーではありません。" };
+      }
+      await fs.promises.access(targetDir, fs.constants.R_OK | fs.constants.W_OK);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        try {
+          await fs.promises.mkdir(targetDir, { recursive: true });
+        } catch (mkdirError) {
+          return {
+            ok: false,
+            message: `移行先フォルダーの作成に失敗しました: ${String(
+              (mkdirError as NodeJS.ErrnoException).code || mkdirError
+            )}`
+          };
+        }
+      } else {
         return {
           ok: false,
-          message: `移行先フォルダーの作成に失敗しました: ${String((mkdirError as NodeJS.ErrnoException).code || mkdirError)}`
+          message: `移行先フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}`
         };
       }
-    } else {
-      return { ok: false, message: `移行先フォルダーにアクセスできません: ${String((error as NodeJS.ErrnoException).code || error)}` };
     }
-  }
 
-  const missing: string[] = [];
-  try {
-    await fs.promises.access(srcOptions, fs.constants.R_OK);
-  } catch {
-    missing.push("options.txt");
-  }
+    const missing: string[] = [];
+    try {
+      await fs.promises.access(srcOptions, fs.constants.R_OK);
+    } catch {
+      missing.push("options.txt");
+    }
 
-  try {
-    const stat = await fs.promises.stat(srcJourney);
-    if (!stat.isDirectory()) missing.push("journeymap/");
-  } catch {
-    missing.push("journeymap/");
-  }
+    try {
+      const stat = await fs.promises.stat(srcJourney);
+      if (!stat.isDirectory()) missing.push("journeymap/");
+    } catch {
+      missing.push("journeymap/");
+    }
 
-  if (missing.length > 0) {
-    return { ok: false, message: `移行元に存在しません: ${missing.join(", ")}` };
-  }
+    if (missing.length > 0) {
+      return { ok: false, message: `移行元に存在しません: ${missing.join(", ")}` };
+    }
 
-  try {
-    await fs.promises.copyFile(srcOptions, dstOptions);
-    await fs.promises.cp(srcJourney, dstJourney, { recursive: true, force: true });
-  } catch (error) {
-    return { ok: false, message: `コピーに失敗しました: ${(error as Error).message}` };
-  }
+    try {
+      await fs.promises.copyFile(srcOptions, dstOptions);
+      await fs.promises.cp(srcJourney, dstJourney, { recursive: true, force: true });
+    } catch (error) {
+      return { ok: false, message: `コピーに失敗しました: ${(error as Error).message}` };
+    }
 
-  try {
-    const settings = await loadSettings();
-    settings.lastTargetDir = targetDir;
-    await saveSettings(settings);
-  } catch {
-    // Non-fatal: migration succeeded
-  }
+    if (disableTutorial) {
+      try {
+        const content = await fs.promises.readFile(dstOptions, "utf8");
+        const lines = content.split(/\r?\n/);
+        let replaced = false;
+        const nextLines = lines.map((line) => {
+          if (line.startsWith("tutorialStep:")) {
+            replaced = true;
+            return "tutorialStep:none";
+          }
+          return line;
+        });
+        if (!replaced) {
+          nextLines.push("tutorialStep:none");
+        }
+        await fs.promises.writeFile(dstOptions, nextLines.join("\n"), "utf8");
+      } catch (error) {
+        return { ok: false, message: `tutorialStepの更新に失敗しました: ${(error as Error).message}` };
+      }
+    }
 
-  return { ok: true, message: "移行が完了しました。" };
-});
+    try {
+      const settings = await loadSettings();
+      settings.lastTargetDir = targetDir;
+      await saveSettings(settings);
+    } catch {
+      // Non-fatal: migration succeeded
+    }
+
+    return { ok: true, message: "移行が完了しました。" };
+  }
+);

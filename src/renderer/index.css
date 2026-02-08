@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: "M PLUS Rounded 1c", "Noto Sans JP", system-ui, sans-serif;
+}
+
+input[type="checkbox"] {
+  accent-color: #78b84a;
+}
+
+.minecraft-panel {
+  background: linear-gradient(135deg, rgba(58, 49, 40, 0.95), rgba(37, 42, 48, 0.95));
+  border: 1px solid rgba(178, 138, 89, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.minecraft-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.minecraft-input:focus {
+  outline: none;
+  border-color: rgba(120, 184, 74, 0.75);
+  box-shadow: 0 0 0 2px rgba(91, 155, 47, 0.35);
+}
+
+.minecraft-button {
+  background: linear-gradient(135deg, #78b84a, #5b9b2f);
+  border: 1px solid rgba(26, 45, 12, 0.6);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 10px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.minecraft-button:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.24), 0 14px 28px rgba(0, 0, 0, 0.35);
+}
+
+.minecraft-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.minecraft-chip {
+  background: rgba(178, 138, 89, 0.2);
+  border: 1px solid rgba(178, 138, 89, 0.35);
+}
